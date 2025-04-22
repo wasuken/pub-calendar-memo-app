@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
 import MemoModal from "./components/MemoModal";
-import { getMemos, saveMemo } from "./actions";
+import { getMemos, saveMemo, deleteMemo } from "./actions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -49,46 +49,83 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
+  const handleDeleteMemo = async (dateKey: string): Promise<boolean> => {
+    try {
+      // Server Actionを使用してメモを保存
+      const response = await deleteMemo(dateKey);
+      if (!response.success) {
+        // エラーメッセージをトーストで表示
+        toast.error("エラー", {
+          description: response.error || "メモの削除に失敗しました",
+        });
+        return false;
+      }
+
+      // UIを更新
+      const newMemos = { ...memos };
+      delete newMemos[dateKey];
+      setMemos(newMemos);
+      console.log("memos", memos);
+
+      // 成功メッセージをトーストで表示
+      toast.success("成功", {
+        description: "メモを削除しました",
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to delete memo:", error);
+
+      // エラーメッセージをトーストで表示
+      toast.error("エラー", {
+        description: "予期せぬエラーが発生しました",
+      });
+
+      return false;
+    }
+    return false;
+  }
+
   //メモを保存
   const handleSaveMemo = async (memo: string): Promise<boolean> => {
     if (selectedDate) {
       const dateKey = selectedDate.toISOString().split("T")[0];
       try {
-        // Server Actionを使用してメモを保存
-        const response = await saveMemo(dateKey, memo);
-        if (!response.success) {
+	// Server Actionを使用してメモを保存
+	const response = await saveMemo(dateKey, memo);
+	if (!response.success) {
           // エラーメッセージをトーストで表示
           toast.error("エラー", {
             description: response.error || "メモの保存に失敗しました",
           });
           return false;
-        }
+	}
 
-        // UIを更新
-        const newMemos = { ...memos };
-        if (memo.trim() === "") {
+	// UIを更新
+	const newMemos = { ...memos };
+	if (memo.trim() === "") {
           delete newMemos[dateKey];
-        } else {
+	} else {
           newMemos[dateKey] = memo;
-        }
-        setMemos(newMemos);
-        console.log("memos", memos);
+	}
+	setMemos(newMemos);
+	console.log("memos", memos);
 
-        // 成功メッセージをトーストで表示
-        toast.success("成功", {
+	// 成功メッセージをトーストで表示
+	toast.success("成功", {
           description: "メモを保存しました",
-        });
+	});
 
-        return true;
+	return true;
       } catch (error) {
-        console.error("Failed to save memo:", error);
+	console.error("Failed to save memo:", error);
 
-        // エラーメッセージをトーストで表示
-        toast.error("エラー", {
+	// エラーメッセージをトーストで表示
+	toast.error("エラー", {
           description: "予期せぬエラーが発生しました",
-        });
+	});
 
-        return false;
+	return false;
       }
     }
     return false;
@@ -98,8 +135,8 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        読み込み中...
+	<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							   読み込み中...
       </div>
     );
   }
@@ -110,13 +147,14 @@ export default function Home() {
 
       <Calendar onDateClick={handleDateClick} memos={memos} />
       <MemoModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        date={selectedDate}
-        initialMemo={
+	isOpen={isModalOpen}
+	onClose={() => setIsModalOpen(false)}
+	date={selectedDate}
+	initialMemo={
           selectedDate ? memos[selectedDate.toISOString().split("T")[0]] : ""
-        }
-        onSave={handleSaveMemo}
+	}
+	onSave={handleSaveMemo}
+	onDelete={handleDeleteMemo}
       />
     </div>
   );

@@ -20,6 +20,7 @@ type MemoModalProps = {
   date: Date | null;
   initialMemo: string;
   onSave: (memo: string) => Promise<boolean>; //変更
+  onDelete: (dateKey: string) => Promise<boolean>; //削除
 };
 
 const MemoModal = ({
@@ -28,17 +29,33 @@ const MemoModal = ({
   date,
   initialMemo,
   onSave,
+  onDelete,
 }: MemoModalProps) => {
   const [memo, setMemo] = useState(initialMemo);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   //useEffectでinitialMemoをmemoにセット
   useEffect(() => {
     setMemo(initialMemo);
   }, [initialMemo, isOpen]);
 
+  const handleDelete = async () => {
+    if(date === null) return;
+    setIsLoading(true);
+    try {
+      const success = await onDelete(date.toISOString().split("T")[0] || "");
+      if (success) {
+        onClose();
+      }
+    } catch (error) {
+      console.error("Failed to save memo:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const handleSave = async () => {
-    setIsSaving(true);
+    setIsLoading(true);
     try {
       const success = await onSave(memo);
       if (success) {
@@ -47,7 +64,7 @@ const MemoModal = ({
     } catch (error) {
       console.error("Failed to save memo:", error);
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
@@ -78,14 +95,19 @@ const MemoModal = ({
           onChange={(e) => setMemo(e.target.value)}
           placeholder="メモを入力してください"
           className="min-h-[100px] focus-visible:ring-0"
-          disabled={isSaving}
+          disabled={isLoading}
         />
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             キャンセル
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
+	  {initialMemo !== undefined && (
+	    <Button variant="outline" onClick={handleDelete} disabled={isLoading}>
+	      削除
+            </Button>
+	  )}
+          <Button onClick={handleSave} disabled={isLoading}>
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 保存中...
